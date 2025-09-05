@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
-from . import models, schemas, crud, database
+from app import models, schemas, crud, database
 import requests  # 👈 for calling Arbeitnow API
 
 # Create tables
