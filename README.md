@@ -47,5 +47,5 @@ Database: SQLite (file-based, included with backend)
 
 🚀 Live Demo
 
-Frontend: [https://your-app.vercel.app](https://job-tracker-oxj3.vercel.app/jobs)
-API Documentation: [https://your-api.onrender.com/docs](https://job-tracker-8-ze63.onrender.com)
+Frontend: https://job-tracker-oxj3.vercel.app/
+API Documentation: https://job-tracker-8-ze63.onrender.com
