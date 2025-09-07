@@ -11,34 +11,46 @@ function Tracker() {
   const [status, setStatus] = useState("Applied");
   const navigate = useNavigate();
 
+  // Get API URL from environment variables
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
+
   // Fetch jobs
   useEffect(() => {
-    fetch("http://127.0.0.1:8001/jobs/")
+    fetch(`${API_BASE_URL}/jobs/`)
       .then((res) => res.json())
-      .then((data) => setJobs(data));
-  }, []);
+      .then((data) => setJobs(data))
+      .catch((error) => {
+        console.error("Error fetching jobs:", error);
+        alert("Failed to fetch jobs. Please check your connection.");
+      });
+  }, [API_BASE_URL]);
 
   // Delete job
   const handelDeleteJob = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this job?");
     if (!confirmDelete) return;
 
-    const res = await fetch(`http://127.0.0.1:8001/jobs/${id}`, {
-      method: "DELETE",
-    });
+    try {
+      const res = await fetch(`${API_BASE_URL}/jobs/${id}`, {
+        method: "DELETE",
+      });
 
-    if (res.ok) {
-      setJobs(jobs.filter((job) => job.id !== id));
-    } else {
-      alert("Failed to delete the job");
+      if (res.ok) {
+        setJobs(jobs.filter((job) => job.id !== id));
+      } else {
+        alert("Failed to delete the job");
+      }
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      alert("Failed to delete the job. Please check your connection.");
     }
   };
 
   // Count Rejections
-    const rejectedCount = jobs.filter(job => job.status === "Rejected").length;
+  const rejectedCount = jobs.filter(job => job.status === "Rejected").length;
 
- // Job Application Success Rate
-    const successRate = jobs.length > 0 ? Math.round(((jobs.length - rejectedCount) / jobs.length) * 100) : 0;
+  // Job Application Success Rate
+  const successRate = jobs.length > 0 ? Math.round(((jobs.length - rejectedCount) / jobs.length) * 100) : 0;
 
   // Add job
   const handleAddJob = async (e) => {
@@ -51,48 +63,80 @@ function Tracker() {
 
     const newJob = { company, position, status };
 
-    const res = await fetch("http://127.0.0.1:8001/jobs/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newJob),
-    });
+    try {
+      const res = await fetch(`${API_BASE_URL}/jobs/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newJob),
+      });
 
-    if (res.ok) {
-      const savedJob = await res.json();
-      setJobs([...jobs, savedJob]);
-      setCompany("");
-      setPosition("");
-      setStatus("Applied");
+      if (res.ok) {
+        const savedJob = await res.json();
+        setJobs([...jobs, savedJob]);
+        setCompany("");
+        setPosition("");
+        setStatus("Applied");
+      } else {
+        alert("Failed to add job");
+      }
+    } catch (error) {
+      console.error("Error adding job:", error);
+      alert("Failed to add job. Please check your connection.");
+    }
+  };
+
+  // Update job status
+  const handleStatusUpdate = async (job, newStatus) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/jobs/${job.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company: job.company,
+          position: job.position,
+          status: newStatus,
+        }),
+      });
+      
+      if (res.ok) {
+        const updatedJob = await res.json();
+        setJobs(jobs.map((j) => (j.id === job.id ? updatedJob : j)));
+      } else {
+        alert("Failed to update status");
+      }
+    } catch (error) {
+      console.error("Error updating job status:", error);
+      alert("Failed to update status. Please check your connection.");
     }
   };
 
   return (
     <div className="flex min-h-screen bg-gray-100 text-black">
-           {/* Sidebar */}
-           <aside className="w-64 bg-white shadow-lg p-6">
-             <h2 className="text-2xl font-bold text-blue-600">Job Tracker</h2>
-             <nav className="mt-20">
-               <ul className="space-y-30">
-                 <li>
-                   <button
-                     className="block w-full text-left p-2 transiton-all duration-300 font-semibold cursor-pointer flex items-center text-blue-500"
-                     onClick={() => navigate('/')}
-                   >
-                    <span className='mr-2 text-blue-500'><MdSpaceDashboard size={18}/></span> Dashboard
-                   </button>
-                 </li>
-                 <li>
-                   <button
-                     className="block w-full text-left p-2 transition-all duration-300 hover:scale-105 hover:font-semibold cursor-pointer flex items-center text-stone-500 "
-                     onClick={() => navigate('/jobs')}
-                   >
-                    <span className='mr-2 text-stone-400'><FaSearch size={16} /></span> Job Search
-                   </button>
-                 </li>
-               </ul>
-             </nav>
-           </aside>
-     
+      {/* Sidebar */}
+      <aside className="w-64 bg-white shadow-lg p-6">
+        <h2 className="text-2xl font-bold text-blue-600">Job Tracker</h2>
+        <nav className="mt-20">
+          <ul className="space-y-30">
+            <li>
+              <button
+                className="block w-full text-left p-2 transiton-all duration-300 font-semibold cursor-pointer flex items-center text-blue-500"
+                onClick={() => navigate('/')}
+              >
+                <span className='mr-2 text-blue-500'><MdSpaceDashboard size={18}/></span> Dashboard
+              </button>
+            </li>
+            <li>
+              <button
+                className="block w-full text-left p-2 transition-all duration-300 hover:scale-105 hover:font-semibold cursor-pointer flex items-center text-stone-500 "
+                onClick={() => navigate('/jobs')}
+              >
+                <span className='mr-2 text-stone-400'><FaSearch size={16} /></span> Job Search
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
       {/* Main content */}
       <main className="flex-1 p-8">
         {/* Header */}
@@ -137,22 +181,23 @@ function Tracker() {
             </button>
           </form>
         </div>
+
         {/* Job Stats */}
         <div className="flex flex-row justify-center mb-4 gap-30">
-                <div className="bg-white w-[300px] h-[200px] rounded-sm ">
-                 <h1 className="text-stone-400 mt-5 p-2 font-semibold">Total Applications:</h1>
-                    <h1 className="text-black text-[60px] p-2 font-bold flex justify-center">{jobs.length}</h1>
-                </div>
-                <div className="bg-white w-[300px] h-[200px] rounded-sm">
-                  <h1 className="text-stone-400 mt-5 p-2 font-semibold">Rejections:</h1>
-                  <h1 className="text-black text-[60px] p-2 font-bold flex justify-center">{rejectedCount}</h1>
-                </div>
-                <div className="bg-white w-[300px] h-[200px] rounded-sm">
-                  <h1 className="text-stone-400 mt-5 p-2 font-semibold">Success Rate:</h1>
-                  <h1 className="text-black text-[60px] p-2 font-bold flex justify-center">{successRate}%</h1>
-                </div>
-
+          <div className="bg-white w-[300px] h-[200px] rounded-sm ">
+            <h1 className="text-stone-400 mt-5 p-2 font-semibold">Total Applications:</h1>
+            <h1 className="text-black text-[60px] p-2 font-bold flex justify-center">{jobs.length}</h1>
+          </div>
+          <div className="bg-white w-[300px] h-[200px] rounded-sm">
+            <h1 className="text-stone-400 mt-5 p-2 font-semibold">Rejections:</h1>
+            <h1 className="text-black text-[60px] p-2 font-bold flex justify-center">{rejectedCount}</h1>
+          </div>
+          <div className="bg-white w-[300px] h-[200px] rounded-sm">
+            <h1 className="text-stone-400 mt-5 p-2 font-semibold">Success Rate:</h1>
+            <h1 className="text-black text-[60px] p-2 font-bold flex justify-center">{successRate}%</h1>
+          </div>
         </div>
+
         {/* Jobs Table */}
         <div className=" p-6 mt-10">
           <h2 className="text-[30px] font-semibold mb-4">Current Applications</h2>
@@ -174,24 +219,7 @@ function Tracker() {
                     <td className=" p-2 flex justify-between items-center">
                       <select
                         value={job.status}
-                        onChange={async (e) => {
-                          const newStatus = e.target.value;
-                          const res = await fetch(`http://127.0.0.1:8001/jobs/${job.id}`, {
-                            method: "PUT",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              company: job.company,
-                              position: job.position,
-                              status: newStatus,
-                            }),
-                          });
-                          if (res.ok) {
-                            const updatedJob = await res.json();
-                            setJobs(jobs.map((j) => (j.id === job.id ? updatedJob : j)));
-                          } else {
-                            alert("Failed to update status");
-                          }
-                        }}
+                        onChange={(e) => handleStatusUpdate(job, e.target.value)}
                         className="border-none rounded p-1 cursor-pointer"
                       >
                         <option value="Applied">Applied</option>
@@ -215,13 +243,11 @@ function Tracker() {
                     No jobs yet. Add one above.
                   </td>
                 </tr>
-              )}
+                )}
             </tbody>
           </table>
         </div>
-        
       </main>
-      
     </div>
   );
 }
